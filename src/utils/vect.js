@@ -91,6 +91,13 @@ export class V4 {
     return v1;
   }
 
+  static abs(v) {
+    return [
+      Math.abs(v[0]),
+      Math.abs(v[1]),
+      Math.abs(v[2]),
+    ]
+  }
   static norm(v) {
     return Math.sqrt(V4.dot(v, v));
   }
@@ -318,3 +325,4 @@ function mdot(m1, m2, x, y) {
 function mget(matrix, x, y) {
   return matrix[x*4 + y];
 }
+

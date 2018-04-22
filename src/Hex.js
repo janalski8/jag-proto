@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
-import {V4} from "./vect";
+import {V4} from "./utils/vect";
 
 class Hex extends Component {
   render() {

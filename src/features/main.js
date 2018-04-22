@@ -1,14 +1,20 @@
-import {make_grid} from "./grid";
+import {add_units, make_grid} from "./board";
 
 export const HEX_PRESS = "HEX_PRESS";
 
 function initial_state() {
-  let hexes = {};
-  make_grid(5).forEach((p, i) => hexes[i.toString()] = {point: p, idx: i.toString()});
-  return {
+  let hexes = make_grid(5);
+  let state = {
     hexes,
-    selected: null
-  }
+    next_idx: 0,
+    selected: null,
+    units: {},
+    queue: []
+  };
+  state = add_units(state, 5, "blue");
+  state = add_units(state, 5, "green");
+  console.log(state);
+  return state;
 }
 
 export function main(state = initial_state(), action) {
