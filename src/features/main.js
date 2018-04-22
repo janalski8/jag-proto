@@ -13,7 +13,6 @@ function initial_state() {
   };
   state = add_units(state, 5, "blue");
   state = add_units(state, 5, "green");
-  console.log(state);
   return state;
 }
 
