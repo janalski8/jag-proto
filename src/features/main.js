@@ -1,5 +1,6 @@
 import {add_units, make_grid} from "./board";
 
+
 export const HEX_PRESS = "HEX_PRESS";
 
 function initial_state() {
@@ -11,8 +12,11 @@ function initial_state() {
     units: {},
     queue: []
   };
-  state = add_units(state, 5, "blue");
-  state = add_units(state, 5, "green");
+
+  state = add_units(state,5,
+    {"color": "green", "attack": 5, "move": 2});
+  state = add_units(state, 5,
+    {"color": "blue", "attack": 5, "move": 2});
   return state;
 }
 
