@@ -35,7 +35,7 @@ class App extends Component {
             if (k === this.props.selected)
               fill = "red";
             else if (hex.unit_idx != null)
-              fill = this.props.units[hex.unit_idx].unit;
+              fill = this.props.units[hex.unit_idx].unit.color;
             return (<Hex
                 fill={fill}
                 center={M4.mulV(m, hex.coords)}
