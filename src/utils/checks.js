@@ -296,7 +296,7 @@ export function array_of(test) {
   return r;
 }
 
-export function is_array(test) {
+export function is_array() {
   const r = function(x) {
     return Array.isArray(x);
 
@@ -316,67 +316,3 @@ export function check(test, value) {
   }
   return value;
 }
-
-//example usage
-//commented examples would cause exceptions;
-check(string, "a");
-check(number, -9.2);
-check(bool, false);
-check(positive, 4.5);
-check(integer, 2);
-check(nully, null);
-check(nully, undefined);
-//check(string, 29);
-//check(number, "131");
-//check(number, 1/0);
-//check(number, 0/0);
-//check(bool, null);
-//check(positive, -3);
-//check(integer, 2.2);
-//check(nully, "null");
-//check(nully, 0);
-check(any(string, integer), "asda");
-check(any(string, integer), 1);
-//check(any(string, integer), false);
-check(all(positive, integer), 2);
-//check(all(positive, integer), -2);
-//check(all(positive, integer), 2.2);
-//check(geq(3), 2);
-check(geq(3), 3);
-check(geq(3), 4);
-check(leq(3), 2);
-check(leq(3), 3);
-//check(leq(3), 4);
-check(lower(3), 2);
-//check(lower(3), 3);
-//check(lower(3), 4);
-//check(greater(3), 2);
-//check(greater(3), 3);
-check(greater(3), 4);
-check(maybe(positive), 2);
-//check(maybe(positive), -2);
-check(maybe(positive), null);
-check(maybe(positive), undefined);
-
-check(object({
-  any_array: is_array(),
-  any_object: is_object(),
-  some_string: string,
-  point_3d: tuple(number, number, number),
-  list_of_enums: array_of(is_in("a", "b", "c")),
-  exact_value: is("value"),
-  obj_with_values: values(number),
-  sized_array: array_len(10),
-  sized_object: obj_size(5),
-}), {
-  any_array: [null, 2, "what", undefined, function() {}],
-  any_object: {a: null, b: "whatever", c: 2, d: function() {}},
-  some_string: "blabla",
-  point_3d: [1, 2, 3],
-  list_of_enums: ["a", "a", "b", "c", "c"],
-  exact_value: "value",
-  obj_with_values: {a: 2, b: 6, c: -121.2},
-  sized_array: [0, 1, 2, 3, 4, null, undefined, "blabla", 8, 9],
-  sized_object: {x0: 1, x1: null, x2: undefined, x3: "blabla", x4: function() {}},
-  other: "hello", //would not work with obj_strict because of this entry
-});
