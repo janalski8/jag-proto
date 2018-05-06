@@ -10,7 +10,7 @@ import {
   is_object, leq, lower,
   maybe,
   nully, number,
-  obj_size,
+  object_size,
   object,
   positive, string,
   tuple, values
@@ -36,6 +36,16 @@ it("fails in case of wrong type", () => {
   expect(() => check(integer, 2.2)).toThrow();
   expect(() => check(nully, "null")).toThrow();
   expect(() => check(nully, 0)).toThrow();
+
+  expect(() => check(is_array, 2.2)).toThrow();
+  expect(() => check(tuple(), 2.2)).toThrow();
+  expect(() => check(array_of(all()), 2.2)).toThrow();
+  expect(() => check(array_len(2), 2.2)).toThrow();
+
+  expect(() => check(is_object, 2.2)).toThrow();
+  expect(() => check(object({}), 2.2)).toThrow();
+  expect(() => check(values(all()), 2.2)).toThrow();
+  expect(() => check(object_size(2), 2.2)).toThrow();
 });
 
 it("checks whether value satisfies any of the tests", () => {
@@ -84,7 +94,7 @@ it("check if value is null, undefined or satisfies predicate", () => {
   expect(() => check(maybe(positive), undefined)).not.toThrow();
 });
 
-it("examples of composite rintime check", () => {
+it("examples of composite runtime check", () => {
   check(object({
     any_array: is_array,
     any_object: is_object,
@@ -94,7 +104,7 @@ it("examples of composite rintime check", () => {
     exact_value: is("value"),
     obj_with_values: values(number),
     sized_array: array_len(10),
-    sized_object: obj_size(5),
+    sized_object: object_size(5),
   }), {
     any_array: [null, 2, "what", undefined, function() {}],
     any_object: {a: null, b: "whatever", c: 2, d: function() {}},
@@ -105,6 +115,31 @@ it("examples of composite rintime check", () => {
     obj_with_values: {a: 2, b: 6, c: -121.2},
     sized_array: [0, 1, 2, 3, 4, null, undefined, "blabla", 8, 9],
     sized_object: {x0: 1, x1: null, x2: undefined, x3: "blabla", x4: function() {}},
-    other: "hello", //would not work with obj_strict because of this entry
+    other: "hello", //would not work with object_strict because of this entry
+  });
+});
+
+it("examples of failing composite checks", () => {
+  check(object({
+    any_array: is_array,
+    any_object: is_object,
+    some_string: string,
+    point_3d: tuple(number, number, number),
+    list_of_enums: array_of(is_in("a", "b", "c")),
+    exact_value: is("value"),
+    obj_with_values: values(number),
+    sized_array: array_len(10),
+    sized_object: object_size(5),
+  }), {
+    any_array: [null, 2, "what", undefined, function() {}],
+    any_object: {a: null, b: "whatever", c: 2, d: function() {}},
+    some_string: "blabla",
+    point_3d: [1, 2, 3],
+    list_of_enums: ["a", "a", "b", "c", "c"],
+    exact_value: "value",
+    obj_with_values: {a: 2, b: 6, c: -121.2},
+    sized_array: [0, 1, 2, 3, 4, null, undefined, "blabla", 8, 9],
+    sized_object: {x0: 1, x1: null, x2: undefined, x3: "blabla", x4: function() {}},
+    other: "hello", //would not work with object_strict because of this entry
   });
 });

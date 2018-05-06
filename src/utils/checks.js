@@ -1,318 +1,270 @@
-function errmsg(x) {
-  let result = JSON.stringify(x, (k, v) => v === undefined ? "undefined" : v);
+function errmsg(value) {
+  let result = JSON.stringify(value, (k, v) => v === undefined ? "undefined" : v);
   if (result.length > 128)
     return result.slice(0, 128) + "...";
   else
     return result;
 }
 
-function simpleInfo(f) {
-  return function(x) {
-    if (f(x))
-      return null;
-    return `${errmsg(x)} is not ${f.name}`;
+function simple_info(predicate, value) {
+  return `${errmsg(value)} is not ${predicate.name}`;
+}
+
+function condition_info(condition, value, threshold) {
+  return `${errmsg(value)} is not ${condition} than ${threshold}`;
+}
+
+export function nully(value) {
+  if (value == null)
+    return null;
+  else
+    return simple_info(nully, value);
+}
+
+export function bool(value) {
+  if (typeof value === "boolean")
+    return null;
+  else
+    return simple_info(bool, value)
+}
+
+export function string(value) {
+  if (typeof value === "string")
+    return null;
+  else
+    return simple_info(string, value)
+}
+
+export function number(value) {
+  if (Number.isFinite(value))
+    return null;
+  else
+    return simple_info(number, value);
+}
+
+export function is_object(value) {
+  if (typeof value === "object")
+    return null;
+  else
+    return `${errmsg(value)} is not an object`;
+}
+
+export function is_array(value) {
+  if (Array.isArray(value))
+    return null;
+  else
+    return `${errmsg(value)} is not an array`;
+}
+
+export function integer(value) {
+  if (Number.isSafeInteger(value))
+    return null;
+  else
+    return simple_info(integer, value);
+}
+
+export function positive(value) {
+  if (number(value) != null)
+    return number(value);
+  if (!(value > 0))
+    return simple_info(positive, value);
+  return null;
+}
+
+export function nonnegative(value) {
+  if (number(value) != null)
+    return number(value);
+  if (!(value >= 0))
+    return simple_info(nonnegative, value);
+  return null;
+}
+
+export function lower(threshold) {
+  check(number, threshold);
+  return function(value) {
+    if (number(value) != null)
+      return number(value);
+    if (!(value < threshold))
+      return condition_info("lower", value, threshold);
+    return null;
   };
 }
-function condInfo(f, cond, val) {
-  return function(x) {
-    if (f(x))
-      return null;
-    return `${errmsg(x)} is not ${cond} than ${val}`;
+
+export function greater(threshold) {
+  check(number, threshold);
+  return function(value) {
+    if (number(value) != null)
+      return number(value);
+    if (!(value > threshold))
+      return condition_info("greater", value, threshold);
+    return null;
   };
 }
 
-export function nully(x) {
-  return x == null;
-}
-nully.info = simpleInfo(nully);
-
-export function bool(x) {
-  return typeof x === "boolean";
-}
-bool.info = simpleInfo(bool);
-
-export function string(x) {
-  return typeof x === "string";
-}
-string.info = simpleInfo(string);
-
-export function number(x) {
-  return Number.isFinite(x);
-}
-number.info = simpleInfo(number);
-
-export function positive(x) {
-  return number(x) && x > 0;
-}
-positive.info = simpleInfo(positive);
-
-export function integer(x) {
-  return Number.isSafeInteger(x);
-}
-integer.info = simpleInfo(integer);
-
-export function lower(val) {
-  check(number, val);
-  const r = function(x) {
-    return number(x) && x < val;
+export function leq(threshold) {
+  check(number, threshold);
+  return function(value) {
+    if (number(value) != null)
+      return number(value);
+    if (!(value <= threshold))
+      return condition_info("equal or lower", value, threshold);
+    return null;
   };
-  r.info = condInfo(r, "lower", val);
-  return r;
 }
 
-export function greater(val) {
-  check(number, val);
-  const r = function(x) {
-    return number(x) && x > val;
+export function geq(threshold) {
+  check(number, threshold);
+  return function(value) {
+    if (number(value) != null)
+      return number(value);
+    if (!(value >= threshold))
+      return condition_info("equal or greater", value, threshold);
+    return null;
   };
-  r.info = condInfo(r, "greater", val);
-  return r;
-}
-
-export function leq(val) {
-  check(number, val);
-  const r = function(x) {
-    return number(x) && x <= val;
-  };
-  r.info = condInfo(r, "equal or lower", val);
-  return r;
-}
-
-export function geq(val) {
-  check(number, val);
-  const r = function(x) {
-    return number(x) && x >= val;
-  };
-  r.info = condInfo(r, "equal or greater", val);
-  return r;
 }
 
 export function all() {
-  const args = arguments;
-  const r = function(value) {
-    for (const arg of args)
-      if (!arg(value))
-        return false;
-    return true;
-  };
-  r.info = function(value) {
-    for (const arg of args)
-      if (!arg(value))
-        return arg.info(value);
+  const predicates = arguments;
+  return function(value) {
+    for (const predicate of predicates) {
+      let result = predicate(value);
+      if (result != null)
+        return result;
+    }
     return null;
   };
-  return r;
 }
 
 export function any() {
-  const args = arguments;
-  const r = function(value) {
-    for (const arg of args)
-      if (arg(value))
-        return true;
-    return false;
-  };
-  r.info = function(value) {
-    if (args.length === 0)
+  const predicates = arguments;
+  return function(value) {
+    if (predicates.length === 0)
       return "no arguments - any() always fails";
     const errs = [];
-    for (const arg of args)
-      if (arg(value))
+    for (const predicate of predicates) {
+      let result = predicate(value);
+      if (result == null)
         return null;
       else
-        errs.push(arg.info(value));
+        errs.push(result);
+    }
     return errs.join(" and ");
   };
-  return r;
 }
 
 export function maybe(test) {
   return any(nully, test);
 }
 
-export function is(val) {
-  const r = function(other) {
-    return val === other;
-  };
-  r.info = function (x) {
-    if (r(x))
+export function is(test_value) {
+  return function (value) {
+    if (test_value === value)
       return null;
-    return `${errmsg(x)} is not ${val}`;
+    return `${errmsg(value)} is not ${errmsg(test_value)}`;
   };
-  return r;
 }
 
 export function is_in() {
-  const argset = new Set(arguments);
-  const r = function(value) {
-    return argset.has(value);
-  };
-  r.info = function(value) {
-    if (argset.size === 0)
-      return "no arguments - isin() always fails";
-    if (argset.has(value))
+  const values_set = new Set(arguments);
+  return function(value) {
+    if (values_set.size === 0)
+      return "no arguments - is_in() always fails";
+    if (values_set.has(value))
       return null;
     else
-      return `${errmsg(value)} isn't equal to any of the values: ${errmsg([...argset])}`;
+      return `${errmsg(value)} isn't equal to any of the values: ${errmsg([...values_set])}`;
   };
-  return r;
 }
 
-export function object(object) {
-  const r = function(x) {
-    if (typeof x !== "object")
-      return false;
-    for (const [key, test] of Object.entries(object))
-      if (!test(x[key]))
-        return false;
-    return true;
-  };
-  r.info = function(x) {
-    if (typeof x !== "object")
-      return `${errmsg(x)} is not an object`;
-    for (const [key, test] of Object.entries(object))
-      if (!test(x[key]))
-        return `{${key}: ${test.info(x[key])}}`;
+export function object_size(size) {
+  check(all(nonnegative, integer), size);
+
+  return function(value) {
+    if (is_object(value) != null)
+      return is_object(value);
+    let actual_size = Object.keys(value).length;
+    if (size !== actual_size)
+      return `${errmsg(value)} has wrong size: ${actual_size}, should be: ${size}`;
     return null;
   };
-  return r;
 }
 
-export function obj_size(size) {
-  const r = function(x) {
-    if (typeof x !== "object")
-      return false;
-    return size === Object.entries(x).length;
-  };
-  r.info = function(x) {
-    if (typeof x !== "object")
-      return `${errmsg(x)} is not an object`;
-    if (size !== Object.entries(x).length)
-      return `${errmsg(x)} has wrong length: ${Object.entries(x).length}, should be: ${size}`;
-    return null;
-  };
-  return r;
-}
+export function object(shape) {
+  check(is_object, shape);
 
-export function obj_strict(shape) {
-  return all(obj_size(Object.keys(shape).length), object(shape));
-}
-
-export function values(test) {
-  const r = function(x) {
-    if (typeof x !== "object")
-      return false;
-    for (const val of Object.values(x))
-      if (!test(val))
-        return false;
-    return true;
-  };
-  r.info = function(x) {
-    if (typeof x !== "object")
-      return `${errmsg(x)} is not an object`;
-    for (const [key, val] of Object.entries(x))
-      if (!test(val))
-        return `{${key}: ${test.info(val)}}`;
-    return null;
-  };
-  return r;
-}
-
-export function is_object() {  const r = function(x) {
-  return typeof x === "object";
-
-};
-  r.info = function(x) {
-    if (typeof x !== "object")
-      return `${errmsg(x)} is not an object`;
-    return true;
-  };
-  return r;
-}
-
-export function tuple() {
-  const testarr = Array.prototype.slice.call(arguments);
-  const r = function(x) {
-    if (!Array.isArray(x))
-      return false;
-    if (x.length !== testarr.length)
-      return false;
-    for (let i = 0; i < testarr.length; i++)
-      if (!testarr[i](x[i]))
-        return false;
-    return true;
-  };
-  r.info = function(x) {
-    if (!Array.isArray(x))
-      return `${errmsg(x)} is not an array`;
-    if (x.length !== testarr.length)
-      return `${errmsg(x)} has wrong length: ${x.length}, should be: ${testarr.length}`;
-    let idx = 0;
-    for (let i = 0; i < testarr.length; i++)
-      if (!testarr[i](x[i]))
-        return `{${idx}: ${testarr[i].info(x[i])}}`;
-    return null;
-  };
-  return r;
-}
-
-export function array_len(count) {
-  const r = function(x) {
-    if (!Array.isArray(x))
-      return false;
-    return x.length === count;
-
-  };
-  r.info = function(x) {
-    if (!Array.isArray(x))
-      return `${errmsg(x)} is not an array`;
-    if (x.length !== count)
-      return `${errmsg(x)} has wrong length: ${x.length}, should be: ${count}`;
-    return null;
-  };
-  return r;
-}
-
-export function array_of(test) {
-  const r = function(x) {
-    if (!Array.isArray(x))
-      return false;
-    for (const val of x)
-      if (!test(val))
-        return false;
-    return true;
-  };
-  r.info = function(x) {
-    if (!Array.isArray(x))
-      return `${errmsg(x)} is not an array`;
-    let idx = 0;
-    for (const val of x) {
-      if (!test(val))
-        return `{${idx}: ${test.info(val)}}`;
-      idx += 1;
+  return function(value) {
+    if (is_object(value) != null)
+      return is_object(value);
+    for (const [key, predicate] of Object.entries(shape)) {
+      let result = predicate(value[key]);
+      if (result != null)
+        return `{${key}: ${result}}`;
     }
     return null;
   };
-  return r;
 }
 
-export function is_array() {
-  const r = function(x) {
-    return Array.isArray(x);
+export function object_strict(shape) {
+  return all(object_size(Object.keys(shape).length), object(shape));
+}
 
-  };
-  r.info = function(x) {
-    if (!Array.isArray(x))
-      return `${errmsg(x)} is not an array`;
+export function values(test) {
+  return function(obj) {
+    if (is_object(obj) != null)
+      return is_object(obj);
+    for (const [key, value] of Object.entries(obj)) {
+      let result = test(value);
+      if (result != null)
+        return `{${key}: ${result}}`;
+    }
     return null;
   };
-  return r;
 }
 
+export function array_len(count) {
+  return function(arr) {
+    if (is_array(arr) != null)
+      return is_array(arr);
+    let actual_length = arr.length;
+    if (actual_length !== count)
+      return `${errmsg(arr)} has wrong length: ${actual_length}, should be: ${count}`;
+    return null;
+  };
+}
+
+export function tuple() {
+  const tests_array = Array.prototype.slice.call(arguments);
+  const initial_test = array_len(tests_array.length);
+  return function(value) {
+    if (initial_test(value) != null)
+      return initial_test(value);
+    for (let i = 0; i < tests_array.length; i++) {
+      let test = tests_array[i];
+      let result = test(value[i]);
+      if (result != null)
+        return `[${i}: ${result}]`;
+    }
+    return null;
+  };
+}
+
+export function array_of(test) {
+  return function(value) {
+    if (is_array(value) != null)
+      return is_array(value);
+    for (let i = 0; i < value.length; i++) {
+      let result = test(value[i]);
+      if (result != null)
+        return `[${i}: ${result}]`;
+    }
+    return null;
+  };
+}
+
+
 export function check(test, value) {
-  if (!test(value)) {
-    console.log(value);
-    throw Error(test.info(value));
-  }
+  let result = test(value);
+  if (result != null)
+    throw Error(result);
   return value;
 }
